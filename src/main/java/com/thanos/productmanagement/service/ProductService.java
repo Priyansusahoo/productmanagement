@@ -4,6 +4,7 @@ import com.thanos.productmanagement.model.Product;
 import com.thanos.productmanagement.repository.ProductRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -18,7 +19,9 @@ import java.util.Optional;
 @Service
 @Slf4j
 public class ProductService {
+
     @Autowired
+    @Qualifier("productRepository")
     private ProductRepository productRepository;
 
     public ResponseEntity<List<Product>> getAllProducts() {
@@ -37,12 +40,14 @@ public class ProductService {
         }
     }
 
-    public ResponseEntity<Optional<Product>> getProductById(Long id) {
+    public ResponseEntity<Optional<?>> getProductById(Long id) {
         try {
             Optional<Product> product = productRepository.findById(id);
             if (product.isEmpty()){
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+                log.error("No product with id = {} found", id);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Optional.of("No product found with the specified id: " + id));
             } else {
+                log.info("Product with id = {} retrieved", id);
                 return ResponseEntity.ok(productRepository.findById(id));
             }
         } catch (Exception e) {
@@ -74,8 +79,46 @@ public class ProductService {
     }
 
     public ResponseEntity<Product> updateProduct(Long id, Product product) {
+        try {
+            Optional<Product> optionalProduct = productRepository.findById(id);
+
+            if (optionalProduct.isPresent()){
+                optionalProduct.get().setName(product.getName());
+                optionalProduct.get().setDescription(product.getDescription());
+                optionalProduct.get().setPrice(product.getPrice());
+//                Product existingProduct = Product.builder()
+//                        .name(product.getName())
+//                        .description(product.getDescription())
+//                        .price(product.getPrice())
+//                        .build();
+                productRepository.save(optionalProduct.get());
+                log.info("Product with id = {} updated successfully", optionalProduct.get().getId());
+                return ResponseEntity.status(HttpStatus.CREATED).body(optionalProduct.get());
+            } else {
+                log.error("No product with id = {} found", id);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new Product());
+            }
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 
     public ResponseEntity<Boolean> deleteProduct(Long id) {
+        try {
+            Optional<Product> optionalProduct = productRepository.findById(id);
+
+            if (optionalProduct.isPresent()) {
+                productRepository.deleteById(id);
+                log.info("Product with id = {} deleted successfully", optionalProduct.get().getId());
+                return ResponseEntity.status(HttpStatus.OK).body(Boolean.TRUE);
+            } else {
+                log.error("Product Doesn't exist");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Boolean.FALSE);
+            }
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 }
