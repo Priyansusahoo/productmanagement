@@ -29,7 +29,7 @@ public class ProductService {
             List<Product> products = productRepository.findAll();
             if(products.isEmpty()){
                 log.error("No Products Found!!");
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+                return ResponseEntity.ok(null);
             } else {
                 log.info("Product list retrieved");
                 return ResponseEntity.ok(productRepository.findAll());
@@ -45,7 +45,7 @@ public class ProductService {
             Optional<Product> product = productRepository.findById(id);
             if (product.isEmpty()){
                 log.error("No product with id = {} found", id);
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Optional.of("No product found with the specified id: " + id));
+                return ResponseEntity.status(HttpStatus.OK).body(Optional.of("No product found with the specified id: " + id));
             } else {
                 log.info("Product with id = {} retrieved", id);
                 return ResponseEntity.ok(productRepository.findById(id));
@@ -70,11 +70,11 @@ public class ProductService {
                 return ResponseEntity.status(HttpStatus.CREATED).body(newProduct);
             } else {
                 log.error("Unable to create Product");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(product);
+                return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(new Product());
             }
         } catch (Exception e) {
             log.error(e.getMessage());
-            throw new RuntimeException(e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(product);
         }
     }
 
